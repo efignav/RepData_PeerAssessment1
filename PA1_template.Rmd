@@ -5,21 +5,208 @@ output:
     keep_md: true
 ---
 
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+#### Loading and pre processing the data
+
+```{r Activity monitoring, echo=T}
+
+data = read.csv("activity.csv", header = T)
+data$date = as.Date(data$date, format = "%Y-%m-%d")
+head(data,10)
+```
+
+#### What is mean total number of steps taken per day?
 
 
+```{r echo=T}
 
-## What is mean total number of steps taken per day?
+steps_mean = tapply(data$steps, data$date ,FUN = mean, na.rm =T)
+med = median(steps_mean, na.rm =TRUE)
+
+{hist(steps_mean, ylim=c(0,20), main="Total number of steps") 
+abline(v=med, col='red', lw=2)
+
+}
+
+```
+```{r echo=F, results=F}
+
+png("./instructions_fig/plot1.png")
+{hist(steps_mean, ylim=c(0,20)) 
+abline(v=med, col='red', lw=2)}
+dev.off(dev.cur())
+
+```
 
 
-
-## What is the average daily activity pattern?
-
+#### What is the average daily activity pattern?
 
 
-## Imputing missing values
+```{r}
+interval = tapply(data$steps, list(data$date, data$interval), sum, na.rm=T)
+
+avg = round(colMeans(interval, na.rm = T),2)
+
+plot(names(avg),avg, type = 'l', main="Average daily patterns", xlab="Interval", ylab="Avg steps")
+```
+```{r echo=F, results=F}
+
+png("./instructions_fig/plot2.png")
+plot(names(avg),avg, type = 'l', main="Average daily patterns", xlab="Interval", ylab="Avg steps")
+dev.off(dev.cur())
+
+```
 
 
+#### Imputing missing values  
 
-## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+interval = tapply(data$steps, list(data$date, data$interval), sum, na.rm=T)
+mean_interval = colMeans(interval)
+
+data_inp = data
+
+for(n in 1:length(colnames(interval))){
+  col = colnames(interval) [n] 
+  na_index = is.na(data_inp$steps) & data_inp[,3]==as.integer(col)
+
+  data_inp[na_index, 1] =  mean_interval[[col]]
+}
+
+steps_mean = tapply(data_inp$steps, data_inp$date , FUN = mean, na.rm =T)
+med = median(steps_mean, na.rm =TRUE)
+
+{hist(steps_mean, main="Histogram with imputed values") 
+abline(v=med, col='blue', lw=2)}
+
+#----
+
+interval = tapply(data_inp$steps, list(data_inp$date, data_inp$interval), sum)
+
+for(n in 1:length(colnames(interval))){
+  col = colnames(interval) [n] 
+  na_index = is.na(interval[, col])
+  interval[na_index, col] =  mean_interval[[col]]
+}
+
+avg = round(colMeans(interval, na.rm = T),2)
+plot(names(avg),avg, type = 'l', main="Average daily patterns (imputed values)", xlab="Interval", ylab="Avg steps")
+
+```
+```{r echo=F, results=F}
+
+png("./instructions_fig/plot3.png")
+{hist(steps_mean, main="Histogram with imputed values") 
+abline(v=med, col='blue', lw=2)}
+dev.off(dev.cur())
+
+avg = round(colMeans(interval, na.rm = T),2)
+png("./instructions_fig/plot4.png")
+plot(names(avg),avg, type = 'l', main="Average daily patterns (imputed values)", xlab="Interval", ylab="Avg steps")
+dev.off(dev.cur())
+
+```
+
+#### Are there differences in activity patterns between weekdays and weekends?  
+
+
+```{r}
+weekend = function(date){
+  return(weekdays(date) %in% c("Saturday", "Sunday"))
+}
+
+data_inp$weekend = as.factor( weekend(data_inp$date))
+
+```
+
+```{r fig.show="hold", fig.height=10, fig.width=6, fig.align="center"}
+
+{
+par(mfrow=c(2,1))
+
+data_inp_weekend = data_inp$weekend=="TRUE"
+data_inp_weekend = data_inp[data_inp_weekend,]
+
+interval = tapply(data_inp_weekend$steps, list(data_inp_weekend$date, data_inp_weekend$interval), sum)
+
+for(n in 1:length(colnames(interval))){
+  col = colnames(interval) [n] 
+  na_index = is.na(interval[, col])
+  interval[na_index, col] =  mean_interval[[col]]
+}
+
+avg = round(colMeans(interval, na.rm = T),2)
+
+plot(names(avg),avg, type = 'l', xlab="", main="Weekend",
+     ylab="Number of steps", mar=c(0,2,2,0), oma=c(0,0,0,0))
+
+data_inp_weekday = data_inp$weekend=="FALSE"
+data_inp_weekday = data_inp[data_inp_weekday,]
+
+interval = tapply(data_inp_weekday$steps, list(data_inp_weekday$date, data_inp_weekday$interval), sum)
+
+for(n in 1:length(colnames(interval))){
+  col = colnames(interval) [n] 
+  na_index = is.na(interval[, col])
+  interval[na_index, col] =  mean_interval[[col]]
+}
+
+avg = round(colMeans(interval, na.rm = T),2)
+
+plot(names(avg),avg, type = 'l', xlab="Interval", main="Weekday",
+     ylab="Number of steps", mar=c(0,2,0,0), oma=c(0,0,0,0))
+
+par(mfrow=c(1,1))
+}
+
+```
+```{r echo=F, fig.height=10, fig.width=6, fig.align="center", results=F, message=F}
+
+png("./instructions_fig/plot5.png")
+{
+par(mfrow=c(2,1))
+
+data_inp_weekend = data_inp$weekend=="TRUE"
+data_inp_weekend = data_inp[data_inp_weekend,]
+
+interval = tapply(data_inp_weekend$steps, list(data_inp_weekend$date, data_inp_weekend$interval), sum)
+
+for(n in 1:length(colnames(interval))){
+  col = colnames(interval) [n] 
+  na_index = is.na(interval[, col])
+  interval[na_index, col] =  mean_interval[[col]]
+}
+
+avg = round(colMeans(interval, na.rm = T),2)
+
+plot(names(avg),avg, type = 'l', xlab="", main="Weekend",
+     ylab="Number of steps", mar=c(0,2,2,0), oma=c(0,0,0,0))
+
+data_inp_weekday = data_inp$weekend=="FALSE"
+data_inp_weekday = data_inp[data_inp_weekday,]
+
+interval = tapply(data_inp_weekday$steps, list(data_inp_weekday$date, data_inp_weekday$interval), sum)
+
+for(n in 1:length(colnames(interval))){
+  col = colnames(interval) [n] 
+  na_index = is.na(interval[, col])
+  interval[na_index, col] =  mean_interval[[col]]
+}
+
+avg = round(colMeans(interval, na.rm = T),2)
+
+plot(names(avg),avg, type = 'l', xlab="Interval", main="Weekday",
+     ylab="Number of steps", mar=c(0,2,0,0), oma=c(0,0,0,0))
+
+par(mfrow=c(1,1))
+}
+
+dev.off(dev.cur())
+
+```
+
